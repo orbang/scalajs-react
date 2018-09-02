@@ -190,5 +190,7 @@ trait TestUtil
     assertContains(err, errFrag)
     err
   }
+
+  def assertCompiles[A](a: => A): Unit = ()
 }
 

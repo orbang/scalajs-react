@@ -1,7 +1,7 @@
 package japgolly.scalajs.react
 
 import japgolly.scalajs.react.internal.{JsRepr, NotAllowed}
-import japgolly.scalajs.react.vdom.{VdomElement, VdomNode}
+import japgolly.scalajs.react.vdom.{TopNode, VdomElement, VdomNode}
 import japgolly.scalajs.react.{raw => Raw}
 
 object React {
@@ -24,6 +24,23 @@ object React {
   val Context     = feature.Context
 
   val Fragment    = feature.ReactFragment
+
+  /** Ref forwarding is an opt-in feature that lets some components take a ref they receive,
+    * and pass it further down (in other words, "forward" it) to a child.
+    *
+    * See https://reactjs.org/docs/forwarding-refs.html
+    */
+  object forwardRef {
+    // TODO vary I/O with variance
+    def toVdom[P, N <: TopNode](f: (P, Option[Ref[N, N]]) => VdomNode) =
+      ???
+
+    def toScalaComponent[P, S, B, CT[-p, +u] <: CtorType[p, u]](c: ScalaComponent[P, S, B, CT]) = new {
+      def apply[P2](f: (P2, Option[Ref.ToScalaComponent[P, S, B, CT]]) => VdomNode) =
+        ???
+    }
+  }
+
 
   /** StrictMode is a tool for highlighting potential problems in an application.
     * Like Fragment, StrictMode does not render any visible UI.
