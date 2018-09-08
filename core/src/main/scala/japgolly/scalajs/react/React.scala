@@ -31,14 +31,18 @@ object React {
     * See https://reactjs.org/docs/forwarding-refs.html
     */
   object forwardRef {
-    // TODO vary I/O with variance
-    def toVdom[P, N <: TopNode](f: (P, Option[Ref[N, N]]) => VdomNode) =
-      ???
 
-    def toScalaComponent[P, S, B, CT[-p, +u] <: CtorType[p, u]](c: ScalaComponent[P, S, B, CT]) = new {
-      def apply[P2](f: (P2, Option[Ref.ToScalaComponent[P, S, B, CT]]) => VdomNode) =
-        ???
-    }
+//    def apply[P, R](f: (P, Option[ref3.Ref.Handle[R]]) => VdomNode) =
+//      ref3.TEMP.fromRaw()
+
+//    // TODO vary I/O with variance
+//    def toVdom[P, N <: TopNode](f: (P, Option[Ref[N, N]]) => VdomNode) =
+//      ???
+//
+//    def toScalaComponent[P, S, B, CT[-p, +u] <: CtorType[p, u]](c: ScalaComponent[P, S, B, CT]) = new {
+//      def apply[P2](f: (P2, Option[Ref.ToScalaComponent[P, S, B, CT]]) => VdomNode) =
+//        ???
+//    }
   }
 
 

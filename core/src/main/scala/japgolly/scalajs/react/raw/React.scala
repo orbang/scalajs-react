@@ -133,13 +133,13 @@ object React extends React {
 
   type Ref = RefNonNull | Null
 
-  type RefNonNull = String | RefFn[ElementRef]
+  type RefNonNull = String | RefFn[ElementRef] | RefHandle[Any]
 
   type RefFn[A] = js.Function1[A | Null, Unit]
 
   @js.native
   trait RefHandle[A] extends js.Object {
-    var current: js.UndefOr[A | Null] // TODO undefined or null?
+    var current: A | Null
   }
 
   type StatelessFunctionalComponent[Props <: js.Object] = js.Function1[Props, Node]
@@ -183,7 +183,7 @@ trait React extends js.Object {
 //  final def createElement[Props <: js.Object](`type`: ComponentType[Props], props: Props                 ): ComponentElement[Props] = js.native
   final def createElement[Props <: js.Object](`type`: ComponentType[Props], props: Props, children: Node*): ComponentElement[Props] = js.native
 
-  final def createRef[A <: js.Any](): RefHandle[A] = js.native
+  final def createRef[A](): RefHandle[A] = js.native
 
   final def forwardRef[Props <: js.Object](f: js.Function2[Props, ForwardedRef, Node]): ForwardRefComponent[Props] = js.native
 

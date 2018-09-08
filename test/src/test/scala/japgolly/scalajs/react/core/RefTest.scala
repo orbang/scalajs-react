@@ -14,8 +14,8 @@ object RefTest extends TestSuite {
   val attr = "data-ah"
   val V = "!"
 
-  private def assertRefUsage[R](newRef: => R)(renderFn: R => VdomNode, refHtml: R => String)
-                               (expectedRefHtml: String, expectedHtml: String => String) = {
+  private def assertRefUsageR[R](newRef: => R)(renderFn: R => VdomNode, refHtml: R => String)
+                                (expectedRefHtml: String, expectedHtml: String => String) = {
     class Backend {
       val ref = newRef
       def render = renderFn(ref)
@@ -115,6 +115,12 @@ object RefTest extends TestSuite {
   }
 
   object TestRefForwarding {
+    import japgolly.scalajs.react.ref3.{Ref => Ref3, TEMP}
+
+    private def assertRefUsage[R](renderFn: Ref3.Simple[R] => VdomNode, refHtml: R => String)
+                                 (expectedRefHtml: String, expectedHtml: String => String) =
+      assertRefUsageR(Ref3[R])(renderFn, r => refHtml(r.get.asCallback.runNow().getOrElse(sys error "Ref = None")))(
+        expectedRefHtml, expectedHtml)
 
     object JsToVdom {
 
@@ -122,13 +128,13 @@ object RefTest extends TestSuite {
       @js.native
       object RawComp extends js.Object
 
-      val Forwarder = TEMP.jsToVdom[Null, Children.Varargs, html.Button](RawComp)
+      val Forwarder = TEMP.force[html.Button, Null, Children.Varargs](RawComp)
 
       def withoutRefU() = assertRender(Forwarder(), "<button class=\"FancyButton\"></button>")
       def withoutRefC() = assertRender(Forwarder(<.br, <.hr), "<button class=\"FancyButton\"><br/><hr/></button>")
       def withRawRef() =
-        assertRefUsage(React.raw.createRef[html.Button]())(
-          Forwarder.withRawRef(_)(), _.current.outerHTML)(
+        assertRefUsage[html.Button](
+          Forwarder.withRef(_)(), _.outerHTML)(
           "<button class=\"FancyButton\"></button>", identity)
     }
 

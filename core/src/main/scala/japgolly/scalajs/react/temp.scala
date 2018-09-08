@@ -1,16 +1,22 @@
-package japgolly.scalajs.react
+package japgolly.scalajs.react.ref3
 
 import japgolly.scalajs.react.vdom.{TopNode, VdomElement}
 import japgolly.scalajs.react.{raw => Raw}
+import japgolly.scalajs.react.{Ref => _, _}
 import scala.scalajs.js
 import component._
 import internal._
 
 object TEMP {
 
-  type Component[N <: TopNode, P <: js.Object, CT[-p, +u] <: CtorType[p, u]] = ComponentRoot[N, P, CT, Unmounted[P]]
-  type Unmounted[P <: js.Object]                               = UnmountedRoot[P]
-  type Mounted                                                 = Unit
+  type Component[R, P <: js.Object, CT[-p, +u] <: CtorType[p, u]] =
+    ComponentRoot[R, P, CT, Unmounted[P]]
+
+  type Unmounted[P <: js.Object] =
+    UnmountedRoot[P]
+
+  type Mounted =
+    Unit
 
   private type RawComponent[P <: js.Object] = Raw.React.ForwardRefComponent[P]
 
@@ -19,64 +25,54 @@ object TEMP {
   private def rawComponentDisplayName: RawComponent[_ <: js.Object] => String =
     _ => staticDisplayName
 
-  def jsToVdom[P <: js.Object, C <: Children, N <: TopNode](raw: js.Any)(implicit s: CtorType.Summoner[P, C]): Component[N, P, s.CT] = {
-    val rc = raw.asInstanceOf[Raw.React.ForwardRefComponent[P]]
-    componentRoot[N, P, s.CT, Unmounted[P]](rc, s.pf.rmap(s.summon(rc))(unmountedRoot))(s.pf)
+  def apply[R, P <: js.Object, C <: Children]
+           (raw: js.Any)
+           (implicit s: CtorType.Summoner[P, C], where: sourcecode.FullName, line: sourcecode.Line): Component[R, P, s.CT] = {
+    InspectRaw.assertValidJsForwardRefComponent(raw, where, line)
+    force[R, P, C](raw)(s)
   }
 
-//  def jsToVdom[P <: js.Object, N <: TopNode](raw: js.Any) =
-    // JsToVdom[P, N](raw.asInstanceOf[Raw.React.ForwardRefComponent[P]])
+  def force[R, P <: js.Object, C <: Children](raw: js.Any)(implicit s: CtorType.Summoner[P, C]): Component[R, P, s.CT] = {
+    val rc = raw.asInstanceOf[RawComponent[P]]
+    componentRoot[R, P, s.CT, Unmounted[P]](rc, s.pf.rmap(s.summon(rc))(unmountedRoot))(s.pf)
+  }
 
+  def fromRaw[R, P <: js.Object, C <: Children](r: Raw.React.ForwardRefComponent[P])(implicit s: CtorType.Summoner[P, C]): Component[R, P, s.CT] =
+    force[R, P, C](r)(s)
 
-//  case class JsToVdom[P <: js.Object, N <: TopNode](raw: Raw.React.ForwardRefComponent[P]) {
-//    println(s"raw = $raw")
-//
-//    // TODO Children
-//    def apply(p: P): VdomElement =
-//      VdomElement(Raw.React.createElement(raw: Raw.React.ComponentType[P], p))
-//
-//    def withRef(ref: Ref[N, N])(p: P): VdomElement =
-//      VdomElement(Raw.React.createElement(raw: Raw.React.ComponentType[P], p))
-//
-//    def withRawRef(ref: Raw.React.RefHandle[_])(p: P): VdomElement =
-//      VdomElement(Raw.React.createElement(raw: Raw.React.ComponentType[P], p))
-//  }
-
-  sealed trait ComponentSimple[N <: TopNode, P, CT[-p, +u] <: CtorType[p, u], U] extends Generic.ComponentSimple[P, CT, U] {
+  sealed trait ComponentSimple[R, P, CT[-p, +u] <: CtorType[p, u], U] extends Generic.ComponentSimple[P, CT, U] {
     override final def displayName = rawComponentDisplayName(raw)
 
     override type Raw <: RawComponent[_ <: js.Object]
-    override def cmapCtorProps[P2](f: P2 => P): ComponentSimple[N, P2, CT, U]
-    override def mapUnmounted[U2](f: U => U2): ComponentSimple[N, P, CT, U2]
-    override def mapCtorType[CT2[-p, +u] <: CtorType[p, u]](f: CT[P, U] => CT2[P, U])(implicit pf: Profunctor[CT2]): ComponentSimple[N, P, CT2, U]
+    override def cmapCtorProps[P2](f: P2 => P): ComponentSimple[R, P2, CT, U]
+    override def mapUnmounted[U2](f: U => U2): ComponentSimple[R, P, CT, U2]
+    override def mapCtorType[CT2[-p, +u] <: CtorType[p, u]](f: CT[P, U] => CT2[P, U])(implicit pf: Profunctor[CT2]): ComponentSimple[R, P, CT2, U]
 
-    def withRawRef(ref: Raw.React.RefHandle[N]): Generic.ComponentSimple[P, CT, U]
+    def withRef[RR <: R](ref: Ref.Handle[RR]): Generic.ComponentSimple[P, CT, U]
   }
-
-  // sealed trait RefProvided extends js.Any
 
   sealed trait ComponentWithRoot[
-  N <: TopNode,
+      R,
       P1, CT1[-p, +u] <: CtorType[p, u], U1,
       P0 <: js.Object, CT0[-p, +u] <: CtorType[p, u], U0]
-      extends ComponentSimple[N, P1, CT1, U1] with Generic.ComponentWithRoot[P1, CT1, U1, P0, CT0, U0] {
+      extends ComponentSimple[R, P1, CT1, U1] with Generic.ComponentWithRoot[P1, CT1, U1, P0, CT0, U0] {
 
     override final type Raw = RawComponent[P0]
-    override final type Root = ComponentRoot[N, P0, CT0, U0]
+    override final type Root = ComponentRoot[R, P0, CT0, U0]
 
-    override def cmapCtorProps[P2](f: P2 => P1): ComponentWithRoot[N, P2, CT1, U1, P0, CT0, U0]
-    override def mapUnmounted[U2](f: U1 => U2): ComponentWithRoot[N, P1, CT1, U2, P0, CT0, U0]
-    override def mapCtorType[CT2[-p, +u] <: CtorType[p, u]](f: CT1[P1, U1] => CT2[P1, U1])(implicit pf: Profunctor[CT2]): ComponentWithRoot[N, P1, CT2, U1, P0, CT0, U0]
+    override def cmapCtorProps[P2](f: P2 => P1): ComponentWithRoot[R, P2, CT1, U1, P0, CT0, U0]
+    override def mapUnmounted[U2](f: U1 => U2): ComponentWithRoot[R, P1, CT1, U2, P0, CT0, U0]
+    override def mapCtorType[CT2[-p, +u] <: CtorType[p, u]](f: CT1[P1, U1] => CT2[P1, U1])(implicit pf: Profunctor[CT2]): ComponentWithRoot[R, P1, CT2, U1, P0, CT0, U0]
 
-    override def withRawRef(ref: Raw.React.RefHandle[N]): Generic.ComponentWithRoot[P1, CT1, U1, P0, CT0, U0]
+    override def withRef[RR <: R](ref: Ref.Handle[RR]): Generic.ComponentWithRoot[P1, CT1, U1, P0, CT0, U0]
   }
 
-  final type ComponentRoot[N <: TopNode, P <: js.Object, CT[-p, +u] <: CtorType[p, u], U] =
-    ComponentWithRoot[N, P, CT, U, P, CT, U]
+  final type ComponentRoot[R, P <: js.Object, CT[-p, +u] <: CtorType[p, u], U] =
+    ComponentWithRoot[R, P, CT, U, P, CT, U]
 
-  final def componentRoot[N <: TopNode, P <: js.Object, CT[-p, +u] <: CtorType[p, u], U](rc: RawComponent[P], c: CT[P, U])
-                                                                          (implicit pf: Profunctor[CT]): ComponentRoot[N, P, CT, U] =
-    new ComponentRoot[N, P, CT, U] {
+  final def componentRoot[R, P <: js.Object, CT[-p, +u] <: CtorType[p, u], U](rc: RawComponent[P], c: CT[P, U])
+                                                                             (implicit pf: Profunctor[CT]): ComponentRoot[R, P, CT, U] =
+    new ComponentRoot[R, P, CT, U] {
       override def root = this
       override val raw = rc
       override val ctor = c
@@ -85,19 +81,23 @@ object TEMP {
       override def mapUnmounted[U2](f: U => U2) = mappedC(this)(identityFn, identityFn, f, pf)
       override def mapCtorType[CT2[-p, +u] <: CtorType[p, u]](f: CT[P, U] => CT2[P, U])(implicit pf: Profunctor[CT2]) =
         mappedC(this)(identityFn, f, identityFn, pf)
-      override def withRawRef(ref: Raw.React.RefHandle[N]) =
-        componentRoot(rc, CtorType.hackBackToSelf(c)(c.withRawProp("ref", ref)))(pf)
+      
+      override def withRef[RR <: R](ref: Ref.Handle[RR]) =
+        componentRoot(rc, setRef(c, ref))(pf)
     }
 
+  private def setRef[CT[-p, +u] <: CtorType[p, u], P, U](c: CT[P, U], ref: Ref.Handle[_]): CT[P, U] =
+    CtorType.hackBackToSelf(c)(c.withRawProp("ref", ref.raw))
+
   protected final def mappedC[
-  N <: TopNode,
+  R,
   P2, CT2[-p, +u] <: CtorType[p, u], U2,
       P1, CT1[-p, +u] <: CtorType[p, u], U1,
       P0 <: js.Object, CT0[-p, +u] <: CtorType[p, u], U0]
-      (from: ComponentWithRoot[N, P1, CT1, U1, P0, CT0, U0])
+      (from: ComponentWithRoot[R, P1, CT1, U1, P0, CT0, U0])
       (cp: P2 => P1, mc: CT1[P1, U1] => CT2[P1, U1], mu: U1 => U2, pf: Profunctor[CT2])
-      : ComponentWithRoot[N, P2, CT2, U2, P0, CT0, U0] =
-    new ComponentWithRoot[N, P2, CT2, U2, P0, CT0, U0] {
+      : ComponentWithRoot[R, P2, CT2, U2, P0, CT0, U0] =
+    new ComponentWithRoot[R, P2, CT2, U2, P0, CT0, U0] {
       override def root = from.root
       override val raw = from.raw
       override val ctor = mc(from.ctor).dimap(cp, mu)
@@ -106,14 +106,16 @@ object TEMP {
       override def mapUnmounted[U3](f: U2 => U3) = mappedC(from)(cp, mc, f compose mu, pf)
       override def mapCtorType[CT3[-p, +u] <: CtorType[p, u]](f: CT2[P2, U2] => CT3[P2, U2])(implicit pf3: Profunctor[CT3]) =
         mappedC(this)(identityFn, f, identityFn, pf3)
-      override def withRawRef(ref: Raw.React.RefHandle[N]) =
-        mappedC(
-          componentRoot(from.raw, CtorType.hackBackToSelf(from.ctor)(from.ctor.withRawProp("ref", ref)))(from.ctorPF)
-        )(cp, mc, mu, pf)
+      
+      override def withRef[RR <: R](ref: Ref.Handle[RR]) =
+        from.withRef(ref).mapCtorType(mc)(pf).mapUnmounted(mu).cmapCtorProps(cp)
     }
 
 
   // ===================================================================================================================
+
+  // TODO Copy-pasted ↓
+  // Add R - we know the ref type
 
   sealed trait UnmountedSimple[P, M] extends Generic.UnmountedSimple[P, M] {
     override type Raw <: Raw.React.ComponentElement[_ <: js.Object]
@@ -126,7 +128,7 @@ object TEMP {
       val result = Raw.ReactDOM.render(raw, container, callback.toJsFn)
 
       // Protect against future React change.
-      assert(result eq null, "Expected rendered functional component to return null; not " + result)
+      assert(result eq null, s"Expected rendered $displayName to return null; not $result")
 
       mountRaw(result)
     }
@@ -154,7 +156,7 @@ object TEMP {
       override val mountRaw      = constUnit
       override val vdomElement   = vdom.VdomElement(raw)
       override def key           = jsNullToOption(raw.key)
-      override def ref           = None // orNullToOption(raw.ref)
+      override def ref           = jsNullToOption(raw.ref)
       override def props         = raw.props.asInstanceOf[P]
       override def propsChildren = PropsChildren.fromRawProps(raw.props)
     }
