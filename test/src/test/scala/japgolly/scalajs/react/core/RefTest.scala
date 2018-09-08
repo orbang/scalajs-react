@@ -5,12 +5,28 @@ import japgolly.scalajs.react.test.ReactTestUtils
 import japgolly.scalajs.react.test.TestUtil._
 import japgolly.scalajs.react.vdom.html_<^._
 import org.scalajs.dom.{html, svg}
+import scala.scalajs.js
+import scala.scalajs.js.annotation._
 import utest._
 
 object RefTest extends TestSuite {
 
   val attr = "data-ah"
   val V = "!"
+
+  private def assertRefUsage[R](newRef: => R)(renderFn: R => VdomNode, refHtml: R => String)
+                               (expectedRefHtml: String, expectedHtml: String => String) = {
+    class Backend {
+      val ref = newRef
+      def render = renderFn(ref)
+    }
+    val C = ScalaComponent.builder[Unit]("X").renderBackend[Backend].build
+    ReactTestUtils.withNewBodyElement { mountNode =>
+      val mounted = C().renderIntoDOM(mountNode)
+      assertRendered(mounted.getDOMNode.asMounted().asHtml(), expectedHtml(expectedRefHtml))
+      assertEq(refHtml(mounted.backend.ref), expectedRefHtml)
+    }
+  }
 
   def testHtmlTag(): Unit = {
     class Backend {
@@ -100,6 +116,23 @@ object RefTest extends TestSuite {
 
   object TestRefForwarding {
 
+    object JsToVdom {
+
+      @JSGlobal("FancyButton")
+      @js.native
+      object RawComp extends js.Object
+
+      val Forwarder = TEMP.jsToVdom[Null, Children.Varargs, html.Button](RawComp)
+
+      def withoutRefU() = assertRender(Forwarder(), "<button class=\"FancyButton\"></button>")
+      def withoutRefC() = assertRender(Forwarder(<.br, <.hr), "<button class=\"FancyButton\"><br/><hr/></button>")
+      def withRawRef() =
+        assertRefUsage(React.raw.createRef[html.Button]())(
+          Forwarder.withRawRef(_)(), _.current.outerHTML)(
+          "<button class=\"FancyButton\"></button>", identity)
+    }
+
+/*
     private class InnerScalaBackend($: BackendScope[Int, Unit]) {
       def gimmeHtmlNow() = $.getDOMNode.runNow().asMounted().asHtml().outerHTML
       def render(p: Int) = <.h1(s"Scala$p")
@@ -167,6 +200,7 @@ object RefTest extends TestSuite {
 
       def vdomRef() = compileError(""" Forwarder.withRef(Ref[html.Button])("nah mate") """)
     }
+    */
   }
 
   override def tests = Tests {
@@ -181,7 +215,34 @@ object RefTest extends TestSuite {
       'refAndKey - TestJs.testRefAndKey()
     }
     'forwardRefs - {
-      'vdom {
+
+      '* - TestRefForwarding.JsToVdom.withoutRefU()
+      '* - TestRefForwarding.JsToVdom.withoutRefC()
+      '* - TestRefForwarding.JsToVdom.withRawRef()
+
+      // def   target
+      // ===== ======
+      // JS    VDOM
+      // JS    JS
+      // Scala VDOM
+      // Scala Scala
+      // Scala JS
+
+      // with and without props
+      // with and without children
+
+      // 'jsToVdom - {}
+      // 'jsToJs - {}
+      // 'scalaToVdom - {}
+      // 'scalaToScala - {}
+      // 'scalaToJs - {}
+
+      'js - {
+        // wrap and use a JS fwd -> vdom
+        // wrap and use a JS fwd -> JS
+      }
+      /*
+      'vdom - {
         import TestRefForwarding.WithPropsToVdom._
         'withoutRef - withoutRef()
         'withRef    - withRef()
@@ -189,13 +250,14 @@ object RefTest extends TestSuite {
         'narrowRef  - narrowRef()
         'scalaRef   - scalaRef()
       }
-      'scala {
+      'scala - {
         import TestRefForwarding.WithPropsToScala._
         'withoutRef - withoutRef()
         'withRef    - withRef()
         'wrongScala - wrongScala()
         'vdomRef    - vdomRef()
       }
+      */
     }
   }
 }

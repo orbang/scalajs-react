@@ -6,8 +6,8 @@ import scala.scalajs.js.|
 
 trait Ref[I, O] { self =>
 
-  val get: CallbackOption[O]
   val set: CallbackKleisli[Option[I], Unit]
+  val get: CallbackOption[O]
 
   final lazy val rawSetFn: raw.React.RefFn[I] =
     set.contramap[I | Null](jsNullToOption).toJsFn
