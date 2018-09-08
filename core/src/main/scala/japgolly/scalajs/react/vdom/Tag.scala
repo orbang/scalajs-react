@@ -7,10 +7,10 @@ class TagOf[+N <: TopNode] private[vdom](final val tag: String,
                                          final val namespace: Namespace) extends TagMod {
 
   @deprecated("Use .withRef instead", "1.2.0")
-  def ref[NN >: N <: TopNode](r: Ref[NN, _]): TagOf[NN] =
+  def ref[NN >: N <: TopNode](r: Ref.Set[NN]): TagOf[NN] =
     (this: TagOf[NN])(Attr.Ref(r))
 
-  def withRef[NN >: N <: TopNode](r: Ref[NN, _]): TagOf[NN] =
+  def withRef[NN >: N <: TopNode](r: Ref.Set[NN]): TagOf[NN] =
     (this: TagOf[NN])(Attr.Ref(r))
 
   override def apply(xs: TagMod*): TagOf[N] =

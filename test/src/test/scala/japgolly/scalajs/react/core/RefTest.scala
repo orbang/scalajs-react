@@ -115,11 +115,10 @@ object RefTest extends TestSuite {
   }
 
   object TestRefForwarding {
-    import japgolly.scalajs.react.ref3.{Ref => Ref3, TEMP}
 
-    private def assertRefUsage[R](renderFn: Ref3.Simple[R] => VdomNode, refHtml: R => String)
+    private def assertRefUsage[R](renderFn: Ref.Simple[R] => VdomNode, refHtml: R => String)
                                  (expectedRefHtml: String, expectedHtml: String => String) =
-      assertRefUsageR(Ref3[R])(renderFn, r => refHtml(r.get.asCallback.runNow().getOrElse(sys error "Ref = None")))(
+      assertRefUsageR(Ref[R])(renderFn, r => refHtml(r.get.asCallback.runNow().getOrElse(sys error "Ref = None")))(
         expectedRefHtml, expectedHtml)
 
     object JsToVdom {

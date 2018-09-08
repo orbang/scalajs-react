@@ -1,91 +1,125 @@
 package japgolly.scalajs.react
 
-import japgolly.scalajs.react.internal.jsNullToOption
+import japgolly.scalajs.react.{raw => Raw}
+import japgolly.scalajs.react.internal.{identityFn, jsNullToOption}
 import scala.scalajs.js
 import scala.scalajs.js.|
 
-trait Ref[I, O] { self =>
-
-  val set: CallbackKleisli[Option[I], Unit]
-  val get: CallbackOption[O]
-
-  final lazy val rawSetFn: raw.React.RefFn[I] =
-    set.contramap[I | Null](jsNullToOption).toJsFn
-
-  def contramap[A](f: A => I): Ref[A, O] =
-    new Ref[A, O] {
-      override val get = self.get
-      override val set = self.set.contramap[Option[A]](_ map f)
-    }
-
-  def map[A](f: O => A): Ref[I, A] =
-    new Ref[I, A] {
-      override val get = self.get.map(f)
-      override val set = self.set
-    }
-
-  def widen[A >: O]: Ref[I, A] =
-    this.asInstanceOf[Ref[I, A]] // map[A](o => o)
-
-  def narrow[A <: I]: Ref[A, O] =
-    this.asInstanceOf[Ref[A, O]] // contramap[A](a => a)
-
-  final def foreach(f: O => Unit): Callback =
-    foreachCB(a => Callback(f(a)))
-
-  final def foreachCB(f: O => Callback): Callback =
-    get.flatMapCB(f).toCallback
-
-  /** Get the reference immediately.
-    *
-    * ONLY USE THIS IN UNIT TESTS. DO NOT USE THIS IN PRODUCTION CODE.
-    *
-    * Unsafe for two reasons:
-    *
-    * 1. It reads an underlying variable. (impurity)
-    * 2. It throws an exception when the ref is empty (partiality)
-    */
-  final def unsafeGet(): O =
-    get.asCallback.runNow().getOrElse(sys error "Reference is empty")
-}
-
 object Ref {
 
-  def apply[A]: Ref[A, A] =
-    new Ref[A, A] {
-      private[this] var ref = Option.empty[A]
-      override val get = CallbackOption(CallbackTo(ref))
-      override val set = CallbackKleisli((r: Option[A]) => Callback{ref = r})
-    }
+  def apply[A]: Simple[A] =
+    fromJs(Raw.React.createRef[A]())
+
+  def fromJs[A](raw: Raw.React.RefHandle[A]): Simple[A] =
+    new Full(raw, identityFn, identityFn)
+
+  def react15[A]: Simple[A] = {
+    val handle = js.Dynamic.literal("current" -> null).asInstanceOf[Raw.React.RefHandle[A]]
+    fromJs(handle)
+  }
+
+  type Simple[A] = Full[A, A, A]
+
+  trait Handle[A] {
+    val raw: Raw.React.RefHandle[A]
+  }
+
+  trait Get[A] { self =>
+    val get: CallbackOption[A]
+
+    def map[B](f: A => B): Get[B]
+
+    def widen[B >: A]: Get[B]
+
+    final def foreach(f: A => Unit): Callback =
+      foreachCB(a => Callback(f(a)))
+
+    final def foreachCB(f: A => Callback): Callback =
+      get.flatMapCB(f).toCallback
+
+    /** Get the reference immediately.
+      *
+      * ONLY USE THIS IN UNIT TESTS. DO NOT USE THIS IN PRODUCTION CODE.
+      *
+      * Unsafe for two reasons:
+      *
+      * 1. It reads an underlying variable. (impurity)
+      * 2. It throws an exception when the ref is empty (partiality)
+      */
+    final def unsafeGet(): A =
+      get.asCallback.runNow().getOrElse(sys error "Reference is empty")
+  }
+
+  trait Set[A] {
+    val set: CallbackKleisli[Option[A], Unit]
+
+    final lazy val rawSetFn: Raw.React.RefFn[A] =
+      set.contramap[A | Null](jsNullToOption).toJsFn
+
+    def contramap[B](f: B => A): Set[B]
+
+    def narrow[B <: A]: Set[B]
+  }
+
+  trait Fn[I, O] extends Set[I] with Get[O] {
+    override def contramap[X](f: X => I): Fn[X, O]
+    override def narrow[X <: I]: Fn[X, O]
+    override def map[X](f: O => X): Fn[I, X]
+    override def widen[X >: O]: Fn[I, X]
+  }
+
+  final class Full[I, A, O](val raw: Raw.React.RefHandle[A], l: I => A, r: A => O) extends Handle[A] with Fn[I, O] {
+
+    def root: Simple[A] =
+      fromJs(raw)
+
+    override val set: CallbackKleisli[Option[I], Unit] =
+      CallbackKleisli((oi: Option[I]) => Callback(raw.current = oi match {
+        case Some(i) => l(i)
+        case None    => null
+      }))
+
+    override val get: CallbackOption[O] =
+      CallbackOption(CallbackTo(jsNullToOption(raw.current).map(r)))
+
+    override def contramap[X](f: X => I): Full[X, A, O] =
+      new Full(raw, l compose f, r)
+
+    override def narrow[X <: I]: Full[X, A, O] =
+      new Full(raw, l, r)
+
+    override def map[X](f: O => X): Full[I, A, X] =
+      new Full(raw, l, f compose r)
+
+    override def widen[X >: O]: Full[I, A, X] =
+      new Full(raw, l, r)
+  }
 
   // ===================================================================================================================
 
-  trait ToComponent[I, O, C] extends Ref[I, O] {
-    val component: C
+  final class ToComponent[I, O, C](ref: Fn[I, O], val component: C) extends Fn[I, O] {
+    override val get = ref.get
+    override val set = ref.set
 
-    override def contramap[A](f: A => I): Ref.ToComponent[A, O, C] =
-      ToComponent(super.contramap(f), component)
+    override def contramap[A](f: A => I): ToComponent[A, O, C] =
+      ToComponent(ref.contramap(f), component)
 
-    override def map[A](f: O => A): Ref.ToComponent[I, A, C] =
-      ToComponent(super.map(f), component)
+    override def map[A](f: O => A): ToComponent[I, A, C] =
+      ToComponent(ref.map(f), component)
 
-    override def widen[A >: O]: Ref.ToComponent[I, A, C] =
-      this.asInstanceOf[ToComponent[I, A, C]] // map[A](o => o)
+    override def widen[A >: O]: ToComponent[I, A, C] =
+      map[A](o => o)
 
-    override def narrow[A <: I]: Ref.ToComponent[A, O, C] =
-      this.asInstanceOf[ToComponent[A, O, C]] // contramap[A](a => a)
+    override def narrow[A <: I]: ToComponent[A, O, C] =
+      contramap[A](a => a)
   }
 
   object ToComponent {
 
-    def apply[I, O, C](ref: Ref[I, O], c: C): ToComponent[I, O, C] =
-      new ToComponent[I, O, C] {
-        override val get = ref.get
-        override val set = ref.set
-        override val component = c
-      }
+    def apply[I, O, C](ref: Fn[I, O], c: C): ToComponent[I, O, C] =
+      new ToComponent[I, O, C](ref, c)
 
-    def inject[I, O, CT[-p, +u] <: CtorType[p, u], P2, U2](c: CT[P2, U2], ref: Ref[I, O]): ToComponent[I, O, CT[P2, U2]] =
+    def inject[I, O, CT[-p, +u] <: CtorType[p, u], P2, U2](c: CT[P2, U2], ref: Fn[I, O]): ToComponent[I, O, CT[P2, U2]] =
       apply(ref, CtorType.hackBackToSelf(c)(c.withRawProp("ref", ref.rawSetFn)))
   }
 
@@ -117,4 +151,6 @@ object Ref {
     ToComponent.inject(c,
       apply[ScalaComponent.RawMounted[P, S, B]].map(_.mountedImpure))
 
+
+  // TODO profunctor instances in scalaz/cats modules
 }

@@ -1,8 +1,7 @@
-package japgolly.scalajs.react.ref3
+package japgolly.scalajs.react
 
 import japgolly.scalajs.react.vdom.{TopNode, VdomElement}
 import japgolly.scalajs.react.{raw => Raw}
-import japgolly.scalajs.react.{Ref => _, _}
 import scala.scalajs.js
 import component._
 import internal._
