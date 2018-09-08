@@ -127,7 +127,7 @@ object RefTest extends TestSuite {
       @js.native
       object RawComp extends js.Object
 
-      val Forwarder = TEMP.force[html.Button, Null, Children.Varargs](RawComp)
+      val Forwarder = JsForwardRefComponent[html.Button, Null, Children.Varargs](RawComp)
 
       def withoutRefU() = assertRender(Forwarder(), "<button class=\"FancyButton\"></button>")
       def withoutRefC() = assertRender(Forwarder(<.br, <.hr), "<button class=\"FancyButton\"><br/><hr/></button>")

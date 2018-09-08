@@ -33,6 +33,9 @@ package object react extends ReactEventTypes {
   val JsFnComponent = component.JsFn
   type JsFnComponent[P <: js.Object, CT[-p, +u] <: CtorType[p, u]] = JsFnComponent.Component[P, CT]
 
+  val JsForwardRefComponent = component.JsForwardRef
+  type JsForwardRefComponent[R, P <: js.Object, CT[-p, +u] <: CtorType[p, u]] = JsForwardRefComponent.Component[R, P, CT]
+
   val ScalaComponent = component.Scala
   type ScalaComponent[P, S, B, CT[-p, +u] <: CtorType[p, u]] = ScalaComponent.Component[P, S, B, CT]
   type BackendScope[P, S] = ScalaComponent.BackendScope[P, S]
