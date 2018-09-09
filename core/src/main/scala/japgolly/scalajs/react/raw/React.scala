@@ -174,12 +174,12 @@ trait React extends js.Object {
 
   final def createElement(`type`: js.Symbol, props: js.Object, children: Node*): Element = js.native
 
-//  final def createElement(`type`: String                                   ): DomElement = js.native
-//  final def createElement(`type`: String, props: js.Object                 ): DomElement = js.native
+  final def createElement(`type`: String                                   ): DomElement = js.native
+  final def createElement(`type`: String, props: js.Object                 ): DomElement = js.native
   final def createElement(`type`: String, props: js.Object, children: Node*): DomElement = js.native
 
-//  final def createElement[Props <: js.Object](`type`: ComponentType[Props]                               ): ComponentElement[Props] = js.native
-//  final def createElement[Props <: js.Object](`type`: ComponentType[Props], props: Props                 ): ComponentElement[Props] = js.native
+  final def createElement[Props <: js.Object](`type`: ComponentType[Props]                               ): ComponentElement[Props] = js.native
+  final def createElement[Props <: js.Object](`type`: ComponentType[Props], props: Props                 ): ComponentElement[Props] = js.native
   final def createElement[Props <: js.Object](`type`: ComponentType[Props], props: Props, children: Node*): ComponentElement[Props] = js.native
 
   final def createRef[A](): RefHandle[A] = js.native

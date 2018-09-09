@@ -190,8 +190,6 @@ object RefTest extends TestSuite {
     }
 
     object WithPropsToScala {
-      // TODO ref should be Option
-      // TODO Components need .withRef(ref) and .withRef(Option(ref))
       private lazy val Forwarder = React.forwardRef.toScalaComponent(InnerScala)[String]((label, ref) =>
         <.div(label, InnerScala.withRef(ref)(123)))
 
