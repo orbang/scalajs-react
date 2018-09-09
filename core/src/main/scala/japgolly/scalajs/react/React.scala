@@ -1,7 +1,7 @@
 package japgolly.scalajs.react
 
 import japgolly.scalajs.react.internal.{JsRepr, NotAllowed}
-import japgolly.scalajs.react.vdom.{TopNode, VdomElement, VdomNode}
+import japgolly.scalajs.react.vdom.{VdomElement, VdomNode}
 import japgolly.scalajs.react.{raw => Raw}
 
 object React {

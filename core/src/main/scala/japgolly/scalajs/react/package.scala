@@ -44,7 +44,7 @@ package object react extends ReactEventTypes {
   type ScalaFnComponent[P, CT[-p, +u] <: CtorType[p, u]] = ScalaFnComponent.Component[P, CT]
 
   val ScalaForwardRefComponent = component.ScalaForwardRef
-  type ScalaForwardRefComponent[P <: js.Object, R, CT[-p, +u] <: CtorType[p, u]] = ScalaForwardRefComponent.Component[P, R, CT]
+  type ScalaForwardRefComponent[P, R, CT[-p, +u] <: CtorType[p, u]] = ScalaForwardRefComponent.Component[P, R, CT]
 
   /** Extensions to plain old DOM. */
   @inline implicit final class ReactExt_DomNode(private val n: dom.raw.Node) extends AnyVal {
