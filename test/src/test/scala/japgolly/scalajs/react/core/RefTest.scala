@@ -137,6 +137,19 @@ object RefTest extends TestSuite {
           "<button class=\"FancyButton\"></button>", identity)
     }
 
+    object ScalaToVdom {
+
+      val Forwarder = ScalaForwardRefComponent.justChildren[html.Button]((c, r) =>
+        <.div(<.button.withRef(r)(^.cls := "fancy", c)))
+
+      def withoutRefU() = assertRender(Forwarder(), "<div><button class=\"fancy\"></button></div>")
+      def withoutRefC() = assertRender(Forwarder(<.br, <.hr), "<div><button class=\"fancy\"><br/><hr/></button></div>")
+      def withRawRef() =
+        assertRefUsage[html.Button](
+          Forwarder.withRef(_)(), _.outerHTML)(
+          "<button class=\"fancy\"></button>", "<div>" + _ + "</div>")
+    }
+
 /*
     private class InnerScalaBackend($: BackendScope[Int, Unit]) {
       def gimmeHtmlNow() = $.getDOMNode.runNow().asMounted().asHtml().outerHTML
@@ -209,6 +222,11 @@ object RefTest extends TestSuite {
   }
 
   override def tests = Tests {
+
+    'empty - {
+      assertEq[Option[Unit]](Ref[Unit].get.asCallback.runNow(), None)
+    }
+
     'htmlTag - testHtmlTag()
     'svgTag - testSvgTag()
     'scalaComponent - {
@@ -224,6 +242,9 @@ object RefTest extends TestSuite {
       '* - TestRefForwarding.JsToVdom.withoutRefU()
       '* - TestRefForwarding.JsToVdom.withoutRefC()
       '* - TestRefForwarding.JsToVdom.withRawRef()
+      '* - TestRefForwarding.ScalaToVdom.withoutRefU()
+      '* - TestRefForwarding.ScalaToVdom.withoutRefC()
+      '* - TestRefForwarding.ScalaToVdom.withRawRef()
 
       // def   target
       // ===== ======

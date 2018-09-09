@@ -9,7 +9,6 @@ object JsForwardRef {
   type Component[R, P <: js.Object, CT[-p, +u] <: CtorType[p, u]] = ComponentRoot[R, P, CT, Unmounted[P]]
   type Unmounted[P <: js.Object]                                  = UnmountedRoot[P]
   type Mounted                                                    = Unit
-  type RawComponent[P <: js.Object]                               = Raw.React.ForwardRefComponent[P]
 
   def apply[R, P <: js.Object, C <: Children]
            (raw: js.Any)
@@ -19,24 +18,26 @@ object JsForwardRef {
   }
 
   def force[R, P <: js.Object, C <: Children](raw: js.Any)(implicit s: CtorType.Summoner[P, C]): Component[R, P, s.CT] = {
-    val rc = raw.asInstanceOf[RawComponent[P]]
+    val rc = raw.asInstanceOf[Raw.React.ForwardRefComponent[P, R]]
     componentRoot[R, P, s.CT, Unmounted[P]](rc, s.pf.rmap(s.summon(rc))(unmountedRoot))(s.pf)
   }
 
-  def fromRaw[R, P <: js.Object, C <: Children](r: Raw.React.ForwardRefComponent[P])(implicit s: CtorType.Summoner[P, C]): Component[R, P, s.CT] =
+  def fromRaw[R, P <: js.Object, C <: Children](r: Raw.React.ForwardRefComponent[P, R])(implicit s: CtorType.Summoner[P, C]): Component[R, P, s.CT] =
     force[R, P, C](r)(s)
 
   // ===================================================================================================================
 
+  // TODO Allow mapping of R
+
   private def staticDisplayName = "<ForwardRefComponent>"
 
-  private def rawComponentDisplayName: RawComponent[_ <: js.Object] => String =
+  private def rawComponentDisplayName: Raw.React.ForwardRefComponent[_ <: js.Object, _] => String =
     _ => staticDisplayName
 
   sealed trait ComponentSimple[R, P, CT[-p, +u] <: CtorType[p, u], U] extends Generic.ComponentSimple[P, CT, U] {
     override final def displayName = rawComponentDisplayName(raw)
 
-    override type Raw <: RawComponent[_ <: js.Object]
+    override type Raw <: Raw.React.ForwardRefComponent[_ <: js.Object, R]
     override def cmapCtorProps[P2](f: P2 => P): ComponentSimple[R, P2, CT, U]
     override def mapUnmounted[U2](f: U => U2): ComponentSimple[R, P, CT, U2]
     override def mapCtorType[CT2[-p, +u] <: CtorType[p, u]](f: CT[P, U] => CT2[P, U])(implicit pf: Profunctor[CT2]): ComponentSimple[R, P, CT2, U]
@@ -49,7 +50,7 @@ object JsForwardRef {
       P0 <: js.Object, CT0[-p, +u] <: CtorType[p, u], U0]
       extends ComponentSimple[R, P1, CT1, U1] with Generic.ComponentWithRoot[P1, CT1, U1, P0, CT0, U0] {
 
-    override final type Raw = RawComponent[P0]
+    override final type Raw = Raw.React.ForwardRefComponent[P0, R]
     override final type Root = ComponentRoot[R, P0, CT0, U0]
 
     override def cmapCtorProps[P2](f: P2 => P1): ComponentWithRoot[R, P2, CT1, U1, P0, CT0, U0]
@@ -62,7 +63,7 @@ object JsForwardRef {
   final type ComponentRoot[R, P <: js.Object, CT[-p, +u] <: CtorType[p, u], U] =
     ComponentWithRoot[R, P, CT, U, P, CT, U]
 
-  final def componentRoot[R, P <: js.Object, CT[-p, +u] <: CtorType[p, u], U](rc: RawComponent[P], c: CT[P, U])
+  final def componentRoot[R, P <: js.Object, CT[-p, +u] <: CtorType[p, u], U](rc: Raw.React.ForwardRefComponent[P, R], c: CT[P, U])
                                                                              (implicit pf: Profunctor[CT]): ComponentRoot[R, P, CT, U] =
     new ComponentRoot[R, P, CT, U] {
       override def root = this

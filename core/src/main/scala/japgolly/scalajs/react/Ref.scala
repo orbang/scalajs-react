@@ -13,6 +13,9 @@ object Ref {
   def fromJs[A](raw: Raw.React.RefHandle[A]): Simple[A] =
     new Full(raw, identityFn, identityFn)
 
+  def forwardedFromJs[A](f: raw.React.ForwardedRef[A]): Option[Simple[A]] =
+    jsNullToOption(f).map(fromJs)
+
   def react15[A]: Simple[A] = {
     val handle = js.Dynamic.literal("current" -> null).asInstanceOf[Raw.React.RefHandle[A]]
     fromJs(handle)

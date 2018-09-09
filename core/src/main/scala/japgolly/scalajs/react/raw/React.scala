@@ -86,7 +86,7 @@ object React extends React {
 
   type ComponentType[Props <: js.Object] =
     ComponentClass[Props, _ <: js.Object] |
-    ForwardRefComponent[Props] |
+    ForwardRefComponent[Props, _] |
     StatelessFunctionalComponent[Props]
 
   type Constructor[P <: js.Object] = js.Function1[P, js.Any] with HasDisplayName
@@ -154,13 +154,12 @@ object React extends React {
     val Consumer: ComponentClass[Null, Null]          = js.native
   }
 
-  @js.native
-  trait ForwardedRef extends js.Any
+  type ForwardedRef[A] = RefHandle[A] | Null
 
   @js.native
-  trait ForwardRefComponent[P <: js.Object] extends js.Object {
+  trait ForwardRefComponent[P <: js.Object, R] extends js.Object {
     val `$$typeof`: js.Symbol = js.native
-    val render: js.Function2[P, ForwardedRef, Node] = js.native
+    val render: js.Function2[P, ForwardedRef[R], Node] = js.native
   }
 }
 
@@ -185,7 +184,7 @@ trait React extends js.Object {
 
   final def createRef[A](): RefHandle[A] = js.native
 
-  final def forwardRef[Props <: js.Object](f: js.Function2[Props, ForwardedRef, Node]): ForwardRefComponent[Props] = js.native
+  final def forwardRef[P <: js.Object, R](f: js.Function2[P with PropsWithChildren, ForwardedRef[R], Node]): ForwardRefComponent[P, R] = js.native
 
   final val version: String = js.native
 
