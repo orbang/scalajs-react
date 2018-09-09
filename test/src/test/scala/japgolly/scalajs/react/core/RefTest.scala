@@ -129,12 +129,12 @@ object RefTest extends TestSuite {
 
       val Forwarder = JsForwardRefComponent[Null, Children.Varargs, html.Button](RawComp)
 
-      def withoutRefU() = assertRender(Forwarder(), "<button class=\"FancyButton\"></button>")
-      def withoutRefC() = assertRender(Forwarder(<.br, <.hr), "<button class=\"FancyButton\"><br/><hr/></button>")
+      def withoutRefU() = assertRender(Forwarder(), "<div><button class=\"FancyButton\"></button></div>")
+      def withoutRefC() = assertRender(Forwarder(<.br, <.hr), "<div><button class=\"FancyButton\"><br/><hr/></button></div>")
       def withRawRef() =
         assertRefUsage[html.Button](
           Forwarder.withRef(_)(), _.outerHTML)(
-          "<button class=\"FancyButton\"></button>", identity)
+          "<button class=\"FancyButton\"></button>", "<div>" + _ + "</div>")
     }
 
     object ScalaToVdom {
