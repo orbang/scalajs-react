@@ -2,9 +2,7 @@ must
 ====
 
 * Decide on React.forwardRef vs ScalaForwardRefComponent vs ScalaComponent.forwardRef. Similar decision for JS comps
-* Test ref/comp variance
 * Fix InspectRaw.ForwardRefComponent message
-* Fix & finish ref tests
 * Update docs
 
 should

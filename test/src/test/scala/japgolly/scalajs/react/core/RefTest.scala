@@ -28,6 +28,11 @@ object RefTest extends TestSuite {
     }
   }
 
+  private def assertRefUsage[R](renderFn: Ref.Simple[R] => VdomNode, refHtml: R => String)
+                               (expectedRefHtml: String, expectedHtml: String => String) =
+    assertRefUsageR(Ref[R])(renderFn, r => refHtml(r.get.asCallback.runNow().getOrElse(sys error "Ref = None")))(
+      expectedRefHtml, expectedHtml)
+
   def testHtmlTag(): Unit = {
     class Backend {
       val input = Ref[html.Input]
@@ -116,38 +121,65 @@ object RefTest extends TestSuite {
 
   object TestRefForwarding {
 
-    private def assertRefUsage[R](renderFn: Ref.Simple[R] => VdomNode, refHtml: R => String)
-                                 (expectedRefHtml: String, expectedHtml: String => String) =
-      assertRefUsageR(Ref[R])(renderFn, r => refHtml(r.get.asCallback.runNow().getOrElse(sys error "Ref = None")))(
-        expectedRefHtml, expectedHtml)
-
     object JsToVdom {
 
       @JSGlobal("FancyButton")
       @js.native
-      object RawComp extends js.Object
+      private object RawComp extends js.Object
 
-      val Forwarder = JsForwardRefComponent[Null, Children.Varargs, html.Button](RawComp)
+      private val Forwarder = JsForwardRefComponent[Null, Children.Varargs, html.Button](RawComp)
 
-      def withoutRefU() = assertRender(Forwarder(), "<div><button class=\"FancyButton\"></button></div>")
-      def withoutRefC() = assertRender(Forwarder(<.br, <.hr), "<div><button class=\"FancyButton\"><br/><hr/></button></div>")
-      def withRawRef() =
+      def nullary() = assertRender(Forwarder(), "<div><button class=\"FancyButton\"></button></div>")
+
+      def children() = assertRender(Forwarder(<.br, <.hr), "<div><button class=\"FancyButton\"><br/><hr/></button></div>")
+
+      def ref() =
         assertRefUsage[html.Button](
-          Forwarder.withRef(_)(), _.outerHTML)(
-          "<button class=\"FancyButton\"></button>", "<div>" + _ + "</div>")
+          Forwarder.withRef(_)("ok"), _.outerHTML)(
+          "<button class=\"FancyButton\">ok</button>", "<div>" + _ + "</div>")
+
+      def wideRef() = assertCompiles(Forwarder.withRef(Ref[html.Element])("ok"))
+
+      def narrowRef() = {
+        def X = JsForwardRefComponent[Null, Children.Varargs, html.Element](???)
+        compileError(""" X.withRef(Ref[html.Button])("ok") """)
+        ()
+      }
+
+      def scalaRef() = {
+        def ref = Ref.toScalaComponent(TestScala.InnerScala.C)
+        compileError(""" Forwarder.withRef(ref)("ok") """)
+        ()
+      }
     }
 
     object ScalaToVdom {
 
-      val Forwarder = ScalaForwardRefComponent.justChildren[html.Button]((c, r) =>
+      private val Forwarder = ScalaForwardRefComponent.justChildren[html.Button]((c, r) =>
         <.div(<.button.withRef(r)(^.cls := "fancy", c)))
 
-      def withoutRefU() = assertRender(Forwarder(), "<div><button class=\"fancy\"></button></div>")
-      def withoutRefC() = assertRender(Forwarder(<.br, <.hr), "<div><button class=\"fancy\"><br/><hr/></button></div>")
-      def withRawRef() =
+      def nullary() = assertRender(Forwarder(), "<div><button class=\"fancy\"></button></div>")
+
+      def children() = assertRender(Forwarder(<.br, <.hr), "<div><button class=\"fancy\"><br/><hr/></button></div>")
+
+      def ref() =
         assertRefUsage[html.Button](
-          Forwarder.withRef(_)(), _.outerHTML)(
-          "<button class=\"fancy\"></button>", "<div>" + _ + "</div>")
+          Forwarder.withRef(_)("ok"), _.outerHTML)(
+          "<button class=\"fancy\">ok</button>", "<div>" + _ + "</div>")
+
+      def wideRef() = assertCompiles(Forwarder.withRef(Ref[html.Element])("ok"))
+
+      def narrowRef() = {
+        def X = ScalaForwardRefComponent[String, html.Element]((s, r) => <.div(<.button.withRef(r)(s)))
+        compileError(""" X.withRef(Ref[html.Button])("ok") """)
+        ()
+      }
+
+      def scalaRef() = {
+        def ref = Ref.toScalaComponent(TestScala.InnerScala.C)
+        compileError(""" Forwarder.withRef(ref)("ok") """)
+        ()
+      }
     }
 
 /*
@@ -156,38 +188,6 @@ object RefTest extends TestSuite {
       def render(p: Int) = <.h1(s"Scala$p")
     }
     private lazy val InnerScala = ScalaComponent.builder[Int]("Scala").renderBackend[InnerScalaBackend].build
-
-    object WithPropsToVdom {
-      private lazy val Forwarder = React.forwardRef.toVdom[String, html.Button]((label, ref) =>
-        <.div(<.button.withRef(ref)(label)))
-
-      def withoutRef() = assertRender(Forwarder("hehe"), "<div><button>hehe</button></div>")
-
-      def withRef() = {
-        class Backend {
-          val ref = Ref[html.Button]
-          def render = Forwarder.withRef(ref)("ok")
-        }
-        val C = ScalaComponent.builder[Unit]("X").renderBackend[Backend].build
-        ReactTestUtils.withNewBodyElement { mountNode =>
-          val mounted = C().renderIntoDOM(mountNode)
-          assertRendered(mounted.getDOMNode.asMounted().asHtml(), "<div><button>ok</button></div>")
-          assertEq(mounted.backend.ref.get.asCallback.runNow().map(_.outerHTML), Some("<button>ok</button>"))
-        }
-      }
-
-      def wideRef() = assertCompiles(Forwarder.withRef(Ref[html.Element])("ok"))
-
-      def narrowRef() = {
-        def X = React.forwardRef.toVdom[String, html.Element]((label, ref) => <.div(<.button.withRef(ref)(label)))
-        compileError(""" X.withRef(Ref[html.Button])("ok") """)
-      }
-
-      def scalaRef() = {
-        def ref = Ref.toScalaComponent(InnerScala)
-        compileError(""" Forwarder.withRef(ref)("ok") """)
-      }
-    }
 
     object WithPropsToScala {
       private lazy val Forwarder = React.forwardRef.toScalaComponent(InnerScala)[String]((label, ref) =>
@@ -224,64 +224,33 @@ object RefTest extends TestSuite {
     'empty - {
       assertEq[Option[Unit]](Ref[Unit].get.asCallback.runNow(), None)
     }
-
     'htmlTag - testHtmlTag()
-    'svgTag - testSvgTag()
+    'svgTag  - testSvgTag()
     'scalaComponent - {
-      'ref - TestScala.testRef()
+      'ref       - TestScala.testRef()
       'refAndKey - TestScala.testRefAndKey()
     }
     'jsComponent - {
-      'ref - TestJs.testRef()
+      'ref       - TestJs.testRef()
       'refAndKey - TestJs.testRefAndKey()
     }
-    'forwardRefs - {
-
-      '* - TestRefForwarding.JsToVdom.withoutRefU()
-      '* - TestRefForwarding.JsToVdom.withoutRefC()
-      '* - TestRefForwarding.JsToVdom.withRawRef()
-      '* - TestRefForwarding.ScalaToVdom.withoutRefU()
-      '* - TestRefForwarding.ScalaToVdom.withoutRefC()
-      '* - TestRefForwarding.ScalaToVdom.withRawRef()
-
-      // def   target
-      // ===== ======
-      // JS    VDOM
-      // JS    JS
-      // Scala VDOM
-      // Scala Scala
-      // Scala JS
-
-      // with and without props
-      // with and without children
-
-      // 'jsToVdom - {}
-      // 'jsToJs - {}
-      // 'scalaToVdom - {}
-      // 'scalaToScala - {}
-      // 'scalaToJs - {}
-
-      'js - {
-        // wrap and use a JS fwd -> vdom
-        // wrap and use a JS fwd -> JS
-      }
-      /*
-      'vdom - {
-        import TestRefForwarding.WithPropsToVdom._
-        'withoutRef - withoutRef()
-        'withRef    - withRef()
-        'wideRef    - wideRef()
-        'narrowRef  - narrowRef()
-        'scalaRef   - scalaRef()
-      }
-      'scala - {
-        import TestRefForwarding.WithPropsToScala._
-        'withoutRef - withoutRef()
-        'withRef    - withRef()
-        'wrongScala - wrongScala()
-        'vdomRef    - vdomRef()
-      }
-      */
+    'jsForwardRef - {
+      import TestRefForwarding.JsToVdom._
+      'nullary   - nullary()
+      'children  - children()
+      'ref       - ref()
+      'wideRef   - wideRef()
+      'narrowRef - narrowRef()
+      'scalaRef  - scalaRef()
+    }
+    'scalaForwardRef - {
+      import TestRefForwarding.ScalaToVdom._
+      'nullary   - nullary()
+      'children  - children()
+      'ref       - ref()
+      'wideRef   - wideRef()
+      'narrowRef - narrowRef()
+      'scalaRef  - scalaRef()
     }
   }
 }
