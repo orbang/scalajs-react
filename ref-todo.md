@@ -18,4 +18,3 @@ should
 could
 =====
 
-* Add ref profunctor instances in scalaz/cats modules
