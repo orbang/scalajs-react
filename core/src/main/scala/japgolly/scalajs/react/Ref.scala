@@ -153,7 +153,4 @@ object Ref {
                       : ToScalaComponent[P, S, B, CT] =
     ToComponent.inject(c,
       apply[ScalaComponent.RawMounted[P, S, B]].map(_.mountedImpure))
-
-
-  // TODO profunctor instances in scalaz/cats modules
 }

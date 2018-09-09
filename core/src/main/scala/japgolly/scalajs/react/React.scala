@@ -35,7 +35,6 @@ object React {
 //    def apply[P, R](f: (P, Option[ref3.Ref.Handle[R]]) => VdomNode) =
 //      ref3.TEMP.fromRaw()
 
-//    // TODO vary I/O with variance
 //    def toVdom[P, N <: TopNode](f: (P, Option[Ref[N, N]]) => VdomNode) =
 //      ???
 //

@@ -28,8 +28,6 @@ object JsForwardRef {
 
   // ===================================================================================================================
 
-  // TODO Allow mapping of R
-
   private def staticDisplayName = "<ForwardRefComponent>"
 
   private def rawComponentDisplayName: Raw.React.ForwardRefComponent[_ <: js.Object, _] => String =
@@ -106,9 +104,6 @@ object JsForwardRef {
 
 
   // ===================================================================================================================
-
-  // TODO Copy-pasted ↓
-  // TODO Add R - we know the ref type
 
   sealed trait UnmountedSimple[P, M] extends Generic.UnmountedSimple[P, M] {
     override type Raw <: Raw.React.ComponentElement[_ <: js.Object]
