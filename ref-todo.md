@@ -8,9 +8,7 @@ must
 should
 ======
 
-* JS/Scala comps - add R to unmounted
 * RefForwarding to JS/Scala comps
-* JsForwardRef unmounted was copy-pasted
 
 could
 =====

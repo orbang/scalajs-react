@@ -180,6 +180,12 @@ object RefTest extends TestSuite {
         compileError(""" Forwarder.withRef(ref)("ok") """)
         ()
       }
+
+      def unmounted() = {
+        assertEq(Forwarder().ref, None)
+        val ref = Ref[html.Button]
+        assertEq(Forwarder.withRef(ref)().ref.map(_.raw), Some(ref.raw))
+      }
     }
 
 /*
@@ -251,6 +257,7 @@ object RefTest extends TestSuite {
       'wideRef   - wideRef()
       'narrowRef - narrowRef()
       'scalaRef  - scalaRef()
+      'unmounted - unmounted()
     }
   }
 }

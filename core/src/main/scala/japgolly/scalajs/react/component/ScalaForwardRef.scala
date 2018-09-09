@@ -7,8 +7,8 @@ import scala.scalajs.js
 
 object ScalaForwardRef {
 
-  type Component[P, R, CT[-p, +u] <: CtorType[p, u]] = JsForwardRef.ComponentWithRoot[P, R, CT, Unmounted[P], Box[P], CT, JsForwardRef.Unmounted[Box[P]]]
-  type Unmounted[P]                                  = JsForwardRef.UnmountedWithRoot[P, Mounted, Box[P]]
+  type Component[P, R, CT[-p, +u] <: CtorType[p, u]] = JsForwardRef.ComponentWithRoot[P, R, CT, Unmounted[P, R], Box[P], CT, JsForwardRef.Unmounted[Box[P], R]]
+  type Unmounted[P, R]                               = JsForwardRef.UnmountedWithRoot[P, R, Mounted, Box[P]]
   type Mounted                                       = JsForwardRef.Mounted
 
   private def create[P, R, C <: Children, CT[-p, +u] <: CtorType[p, u]]

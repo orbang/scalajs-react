@@ -48,6 +48,7 @@ object Js extends JsBaseComponentTemplate[RAW.React.ComponentClassP] {
     override def mapMounted[M2](f: M => M2): UnmountedSimple[P, M2]
 
     override type Raw <: RAW.React.ComponentElement[_ <: js.Object]
+    override final type Ref = RAW.React.Ref
     override final def displayName = readDisplayName(raw.`type`)
   }
 

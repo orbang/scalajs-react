@@ -104,7 +104,7 @@ object React extends React {
     // def `type`: ElementType
     // def props: React$ElementProps<ElementType>,
     def key: Key | Null
-    def ref: Ref
+    def ref: Ref | Null
   }
 
   /** A React element is the type for the value of a DOM tag, or the return type of React.createElement(). */
@@ -131,9 +131,7 @@ object React extends React {
 
   type Node = ChildrenArray[Empty | String | JsNumber | Element]
 
-  type Ref = RefNonNull | Null
-
-  type RefNonNull = String | RefFn[ElementRef] | RefHandle[Any]
+  type Ref = RefFn[ElementRef] | RefHandle[Any]
 
   type RefFn[A] = js.Function1[A | Null, Unit]
 
@@ -160,6 +158,7 @@ object React extends React {
   trait ForwardRefComponent[P <: js.Object, R] extends js.Object {
     val `$$typeof`: js.Symbol = js.native
     val render: js.Function2[P, ForwardedRef[R], Node] = js.native
+    def props: P with PropsWithChildren
   }
 }
 
